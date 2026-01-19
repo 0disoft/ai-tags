@@ -13,6 +13,12 @@ Out of scope: Automatic refactors, TODO generation, and external reporting.
 4. Use `YYYY-MM-DD` with optional timezone for expiry tags (defaults to UTC).
 5. If the payload contains `${...}`, expiry diagnostics are skipped.
 
+## Project documentation guidance
+
+To make the tags effective, document their meaning in your project docs so humans and AI share the same conventions.
+We recommend adding a short "AI Annotation Tags" section to files such as AGENTS.md or CLAUDE.md,
+and explicitly describe what each tag means in your codebase.
+
 ## Tag catalog
 
 ### Core tags
