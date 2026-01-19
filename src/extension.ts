@@ -1,0 +1,128 @@
+import * as vscode from 'vscode';
+import { getConfig } from './services/config';
+import { AiTagScanService } from './services/scanService';
+import { SyncHoverProvider } from './features/sync/syncHoverProvider';
+import { SyncInlayProvider } from './features/sync/syncInlayProvider';
+import { SyncIconDecorationManager } from './features/sync/syncIconDecorations';
+import { SyncCodeActionProvider, createSyncTarget } from './features/sync/syncCodeActions';
+import { TagHighlightManager } from './features/highlight/tagHighlight';
+import { TagIndexService } from './features/tagIndex/tagIndexService';
+import { TagTreeDataProvider } from './features/tagIndex/tagTreeDataProvider';
+import { openTagLocation } from './features/tagIndex/tagCommands';
+
+export const activate = (context: vscode.ExtensionContext): void => {
+  const collection = vscode.languages.createDiagnosticCollection('ai-tags');
+  const scanService = new AiTagScanService(getConfig, collection);
+  const hoverProvider = new SyncHoverProvider(getConfig);
+  const inlayProvider = new SyncInlayProvider(getConfig);
+  const syncIconManager = new SyncIconDecorationManager(getConfig);
+  const syncCodeActions = new SyncCodeActionProvider(getConfig);
+  const highlightManager = new TagHighlightManager(getConfig);
+  const tagIndexService = new TagIndexService();
+  const tagTreeProvider = new TagTreeDataProvider(tagIndexService);
+
+  const rescanAll = async () => {
+    scanService.clearAll();
+    await scanService.scanWorkspace();
+    await Promise.all(
+      vscode.workspace.textDocuments.map((doc) => scanService.scanDocument(doc))
+    );
+  };
+
+  context.subscriptions.push(collection);
+  context.subscriptions.push(
+    vscode.commands.registerCommand('aiTags.openTagLocation', openTagLocation)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('aiTags.createSyncTarget', createSyncTarget)
+  );
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider('aiTags.tagExplorer', tagTreeProvider)
+  );
+  context.subscriptions.push(
+    vscode.languages.registerHoverProvider({ scheme: 'file' }, hoverProvider)
+  );
+  context.subscriptions.push(
+    vscode.languages.registerCodeActionsProvider(
+      { scheme: 'file' },
+      syncCodeActions,
+      { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }
+    )
+  );
+  context.subscriptions.push(
+    vscode.languages.registerInlayHintsProvider({ scheme: 'file' }, inlayProvider)
+  );
+
+  void rescanAll();
+  void tagIndexService.scanWorkspace();
+
+  context.subscriptions.push(
+    vscode.workspace.onDidOpenTextDocument((document) => {
+      void scanService.scanDocument(document);
+      tagIndexService.upsertDocument(document);
+      tagIndexService.fireDidChange();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.window.onDidChangeActiveTextEditor((editor) => {
+      highlightManager.update(editor);
+      void syncIconManager.update(editor);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeTextDocument((event) => {
+      scanService.scheduleDocument(event.document);
+      tagIndexService.upsertDocument(event.document);
+      tagIndexService.fireDidChange();
+      const active = vscode.window.activeTextEditor;
+      if (active && active.document.uri.toString() === event.document.uri.toString()) {
+        highlightManager.update(active);
+        void syncIconManager.update(active);
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.workspace.onDidSaveTextDocument((document) => {
+      scanService.scheduleDocument(document);
+      tagIndexService.upsertDocument(document);
+      tagIndexService.fireDidChange();
+      const active = vscode.window.activeTextEditor;
+      if (active && active.document.uri.toString() === document.uri.toString()) {
+        highlightManager.update(active);
+        void syncIconManager.update(active);
+      }
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.workspace.onDidCloseTextDocument((document) => {
+      scanService.clearDocument(document);
+      tagIndexService.removeDocument(document);
+      tagIndexService.fireDidChange();
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration('aiTags')) {
+        void rescanAll();
+        highlightManager.update(vscode.window.activeTextEditor);
+        void syncIconManager.update(vscode.window.activeTextEditor);
+        tagIndexService.fireDidChange();
+      }
+    })
+  );
+
+  context.subscriptions.push({
+    dispose: () => {
+      highlightManager.dispose();
+      syncIconManager.dispose();
+      tagTreeProvider.dispose();
+    }
+  });
+};
+
+export const deactivate = (): void => {};

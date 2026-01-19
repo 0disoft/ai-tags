@@ -1,0 +1,92 @@
+{
+  "name": "ai-tags",
+  "displayName": "AI Tags",
+  "description": "AI Annotation Tags helper",
+  "publisher": "0disoft",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0disoft/ai-tags"
+  },
+  "version": "1.0.1",
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aiTags.openTagLocation",
+        "title": "AI Tags: Open Tag Location"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "aiTags.tagExplorer",
+          "name": "AI Tags",
+          "icon": "media/icon.png"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AI Tags",
+      "properties": {
+        "aiTags.expiry.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable @AI:EXPIRY diagnostics."
+        },
+        "aiTags.expiry.warnOnInvalid": {
+          "type": "boolean",
+          "default": true,
+          "description": "Warn when @AI:EXPIRY has an invalid format."
+        },
+        "aiTags.expiry.graceDays": {
+          "type": "number",
+          "default": 0,
+          "description": "Grace period in days after an expiry date."
+        },
+        "aiTags.sync.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable @AI:SYNC hover links."
+        },
+        "aiTags.sync.warnOnMissing": {
+          "type": "boolean",
+          "default": true,
+          "description": "Warn when @AI:SYNC targets are missing."
+        },
+        "aiTags.highlight.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Highlight @AI:TAG keywords in comments."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "pnpm run compile && pnpm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "~22.19.7",
+    "@types/vscode": "^1.108.1",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.39.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.0"
+  }
+}
