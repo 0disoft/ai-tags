@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { parseAiTagFromLine } from '../../core/tagParser';
 import type { ExtensionConfig } from '../../services/config';
-import { resolveSyncTargets, type SyncResolvedTarget } from './syncResolver';
+import { resolveSyncTargets, type LineRange, type SyncResolvedTarget } from './syncResolver';
+import { findSymbolInFile } from './syncSymbolResolver';
 
 const isOkTarget = (
   item: SyncResolvedTarget
@@ -10,6 +11,64 @@ const isOkTarget = (
 const isMissingTarget = (
   item: SyncResolvedTarget
 ): item is Extract<SyncResolvedTarget, { status: 'missing' }> => item.status === 'missing';
+
+/**
+ * 줄/심볼 정보를 기반으로 vscode.open 명령 URI 생성
+ */
+const buildOpenCommand = async (
+  uri: vscode.Uri,
+  lineRange?: LineRange,
+  symbol?: string
+): Promise<string> => {
+  // 심볼이 있으면 심볼 위치 검색
+  if (symbol) {
+    const result = await findSymbolInFile(uri, symbol);
+    if (result.status === 'found') {
+      const options = {
+        selection: new vscode.Range(result.line, result.character, result.line, result.character)
+      };
+      const args = [uri, options];
+      const encoded = encodeURIComponent(JSON.stringify(args));
+      return `command:vscode.open?${encoded}`;
+    }
+  }
+
+  // 줄 번호가 있으면 해당 줄로 이동
+  if (lineRange) {
+    const startLine = lineRange.start - 1; // 0-indexed
+    const endLine = lineRange.end ? lineRange.end - 1 : startLine;
+    const options = {
+      selection: new vscode.Range(startLine, 0, endLine, 0)
+    };
+    const args = [uri, options];
+    const encoded = encodeURIComponent(JSON.stringify(args));
+    return `command:vscode.open?${encoded}`;
+  }
+
+  // 기본: 파일만 열기
+  const encoded = encodeURIComponent(JSON.stringify(uri));
+  return `command:vscode.open?${encoded}`;
+};
+
+/**
+ * 라벨에 줄/심볼 정보 추가
+ */
+const buildLabel = (
+  relativePath: string,
+  lineRange?: LineRange,
+  symbol?: string
+): string => {
+  if (symbol) {
+    return `${relativePath}#${symbol}`;
+  }
+  if (lineRange) {
+    const rangeStr = lineRange.end
+      ? `L${lineRange.start}-L${lineRange.end}`
+      : `L${lineRange.start}`;
+    return `${relativePath}:${rangeStr}`;
+  }
+  return relativePath;
+};
 
 export class SyncHoverProvider implements vscode.HoverProvider {
   constructor(private readonly readConfig: () => ExtensionConfig) {}
@@ -39,9 +98,9 @@ export class SyncHoverProvider implements vscode.HoverProvider {
     if (okTargets.length > 0) {
       markdown.appendMarkdown(`Open linked file${okTargets.length > 1 ? 's' : ''}:\n`);
       for (const item of okTargets) {
-        const label = vscode.workspace.asRelativePath(item.uri, false);
-        const encoded = encodeURIComponent(JSON.stringify(item.uri));
-        const commandUri = vscode.Uri.parse(`command:vscode.open?${encoded}`).toString();
+        const relativePath = vscode.workspace.asRelativePath(item.uri, false);
+        const label = buildLabel(relativePath, item.lineRange, item.symbol);
+        const commandUri = await buildOpenCommand(item.uri, item.lineRange, item.symbol);
         markdown.appendMarkdown(`- [${label}](${commandUri})\n`);
       }
     }
@@ -70,3 +129,4 @@ export class SyncHoverProvider implements vscode.HoverProvider {
     return new vscode.Hover(markdown, range);
   }
 }
+

@@ -5,6 +5,28 @@ export type SyncResolveOptions = {
   expandDirectories?: boolean;
 };
 
+/**
+ * 줄 범위 정보
+ * @example { start: 10 } - 단일 줄
+ * @example { start: 10, end: 20 } - 범위
+ */
+export type LineRange = {
+  start: number;
+  end?: number;
+};
+
+/**
+ * 토큰에서 파싱된 경로 정보
+ */
+export type ParsedSyncToken = {
+  /** 파일 경로 (줄/심볼 제외) */
+  filePath: string;
+  /** 줄 번호 또는 범위 (L123, L10-L20) */
+  lineRange?: LineRange;
+  /** 심볼명 (#func, #Class.method) */
+  symbol?: string;
+};
+
 export type SyncResolvedTarget =
   | {
       status: 'ok';
@@ -12,6 +34,10 @@ export type SyncResolvedTarget =
       uri: vscode.Uri;
       isDirectory: boolean;
       fromDirectory: boolean;
+      /** 줄 범위 정보 (있는 경우) */
+      lineRange?: LineRange;
+      /** 심볼명 (있는 경우) */
+      symbol?: string;
     }
   | {
       status: 'missing';
@@ -20,6 +46,71 @@ export type SyncResolvedTarget =
       candidateUri?: vscode.Uri;
       allowCreate: boolean;
     };
+
+/**
+ * 토큰에서 줄 번호/범위를 파싱합니다.
+ * @param token - 원본 토큰 (예: "file.ts:L123", "file.ts:L10-L20")
+ * @returns 파싱 결과 { filePath, lineRange } 또는 null
+ */
+export const parseLineRange = (token: string): ParsedSyncToken | null => {
+  // 정규식: :L(\d+)(?:-L?(\d+))?$
+  const match = token.match(/:L(\d+)(?:-L?(\d+))?$/i);
+  if (!match) {
+    return null;
+  }
+
+  const start = parseInt(match[1], 10);
+  const end = match[2] ? parseInt(match[2], 10) : undefined;
+  const filePath = token.slice(0, match.index);
+
+  return {
+    filePath,
+    lineRange: { start, end }
+  };
+};
+
+/**
+ * 토큰에서 심볼명을 파싱합니다.
+ * @param token - 원본 토큰 (예: "file.ts#func", "file.ts#Class.method")
+ * @returns 파싱 결과 { filePath, symbol } 또는 null
+ */
+export const parseSymbol = (token: string): ParsedSyncToken | null => {
+  // 정규식: #([\w.]+)$
+  const match = token.match(/#([\w.]+)$/);
+  if (!match) {
+    return null;
+  }
+
+  const filePath = token.slice(0, match.index);
+  const symbol = match[1];
+
+  return {
+    filePath,
+    symbol
+  };
+};
+
+/**
+ * 토큰을 파싱하여 경로, 줄 범위, 심볼 정보를 추출합니다.
+ * @param token - 원본 토큰
+ * @returns 파싱된 토큰 정보
+ */
+export const parseSyncToken = (token: string): ParsedSyncToken => {
+  // 줄 번호 우선 시도
+  const lineResult = parseLineRange(token);
+  if (lineResult) {
+    return lineResult;
+  }
+
+  // 심볼 시도
+  const symbolResult = parseSymbol(token);
+  if (symbolResult) {
+    return symbolResult;
+  }
+
+  // 둘 다 없으면 경로만 반환
+  return { filePath: token };
+};
 
 const splitPayload = (payload: string): string[] => {
   if (payload.includes(',')) {
@@ -113,7 +204,11 @@ export const resolveSyncTargets = async (
   const expandDirectories = options.expandDirectories === true;
 
   for (const token of targets) {
-    const resolved = await resolveTokenPath(document, token);
+    // 토큰에서 줄/심볼 정보 파싱
+    const parsed = parseSyncToken(token);
+    const filePath = parsed.filePath;
+
+    const resolved = await resolveTokenPath(document, filePath);
     if (resolved.status === 'missing') {
       results.push({
         status: 'missing',
@@ -136,7 +231,9 @@ export const resolveSyncTargets = async (
           token,
           uri: childUri,
           isDirectory: false,
-          fromDirectory: true
+          fromDirectory: true,
+          lineRange: parsed.lineRange,
+          symbol: parsed.symbol
         });
         added += 1;
       }
@@ -156,9 +253,12 @@ export const resolveSyncTargets = async (
       token,
       uri: resolved.uri,
       isDirectory: resolved.isDirectory,
-      fromDirectory: false
+      fromDirectory: false,
+      lineRange: parsed.lineRange,
+      symbol: parsed.symbol
     });
   }
 
   return results;
 };
+

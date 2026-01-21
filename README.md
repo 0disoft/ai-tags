@@ -40,6 +40,8 @@ and explicitly describe what each tag means in your codebase.
   - Payload: Relative path from workspace root. If the path starts with `./` or `../`, it is resolved from the current document.
   - Multiple paths: Separate with commas (`,`).
   - Folder paths: When a folder is provided, its files are listed in hover.
+  - Line numbers: Append `:L123` to jump to line 123, or `:L10-L20` for a range.
+  - Symbols: Append `#functionName` or `#ClassName.methodName` to jump to a symbol.
 - @AI:EXPIRY
   - Meaning: Temporary code removal deadline.
   - Payload: Date with optional timezone, format `YYYY-MM-DD [TZ]`.
@@ -61,6 +63,18 @@ and explicitly describe what each tag means in your codebase.
 - @AI:FROZEN
   - Meaning: Do not change this block.
   - Payload: Short sentence.
+- @AI:OWNER
+  - Meaning: Responsible person or team for this code.
+  - Payload: Name or team identifier.
+- @AI:VERSION
+  - Meaning: Specific library or API version dependency.
+  - Payload: Package name and version, e.g. `react@18`.
+- @AI:PERF
+  - Meaning: Performance-sensitive section (latency, memory).
+  - Payload: Short sentence describing the constraint.
+- @AI:DEPRECATED
+  - Meaning: Code scheduled for removal with migration path.
+  - Payload: Alternative to use, e.g. `Use newMethod() instead`.
 
 ## Examples
 
@@ -70,6 +84,8 @@ and explicitly describe what each tag means in your codebase.
 // @AI:BOUNDARY Validate inputs only in this function.
 // @AI:EXPIRY 2026-06-30
 // @AI:SYNC src/billing/pricing.ts
+// @AI:SYNC src/utils/calc.ts:L50
+// @AI:SYNC src/models/order.ts#OrderItem
 function calcPrice(input: PriceInput) {}
 ```
 
