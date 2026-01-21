@@ -1,3 +1,5 @@
+// @AI:CONTEXT Parses @AI:SYNC tag payload and resolves file paths
+// @AI:SYNC ./syncHoverProvider.ts, ./syncInlayProvider.ts
 import * as path from 'path';
 import * as vscode from 'vscode';
 
@@ -5,25 +7,19 @@ export type SyncResolveOptions = {
   expandDirectories?: boolean;
 };
 
-/**
- * 줄 범위 정보
- * @example { start: 10 } - 단일 줄
- * @example { start: 10, end: 20 } - 범위
- */
+// @AI:CONTEXT Line range info type (single line or range)
 export type LineRange = {
   start: number;
   end?: number;
 };
 
-/**
- * 토큰에서 파싱된 경로 정보
- */
+// @AI:CONTEXT Parsed SYNC token info (filePath + optional lineRange/symbol)
 export type ParsedSyncToken = {
-  /** 파일 경로 (줄/심볼 제외) */
+  /** File path (excluding line/symbol) */
   filePath: string;
-  /** 줄 번호 또는 범위 (L123, L10-L20) */
+  /** Line number or range (L123, L10-L20) */
   lineRange?: LineRange;
-  /** 심볼명 (#func, #Class.method) */
+  /** Symbol name (#func, #Class.method) */
   symbol?: string;
 };
 
@@ -34,9 +30,9 @@ export type SyncResolvedTarget =
       uri: vscode.Uri;
       isDirectory: boolean;
       fromDirectory: boolean;
-      /** 줄 범위 정보 (있는 경우) */
+      /** Line range info (if present) */
       lineRange?: LineRange;
-      /** 심볼명 (있는 경우) */
+      /** Symbol name (if present) */
       symbol?: string;
     }
   | {
@@ -47,13 +43,10 @@ export type SyncResolvedTarget =
       allowCreate: boolean;
     };
 
-/**
- * 토큰에서 줄 번호/범위를 파싱합니다.
- * @param token - 원본 토큰 (예: "file.ts:L123", "file.ts:L10-L20")
- * @returns 파싱 결과 { filePath, lineRange } 또는 null
- */
+// @AI:CONTEXT Parses :L123, :L10-L20 format line number/range
+// @AI:INVARIANT Uses regex :L(\d+)(?:-L?(\d+))?$
 export const parseLineRange = (token: string): ParsedSyncToken | null => {
-  // 정규식: :L(\d+)(?:-L?(\d+))?$
+  // Regex: :L(\d+)(?:-L?(\d+))?$
   const match = token.match(/:L(\d+)(?:-L?(\d+))?$/i);
   if (!match) {
     return null;
@@ -69,13 +62,10 @@ export const parseLineRange = (token: string): ParsedSyncToken | null => {
   };
 };
 
-/**
- * 토큰에서 심볼명을 파싱합니다.
- * @param token - 원본 토큰 (예: "file.ts#func", "file.ts#Class.method")
- * @returns 파싱 결과 { filePath, symbol } 또는 null
- */
+// @AI:CONTEXT Parses #func, #Class.method format symbol names
+// @AI:INVARIANT Uses regex #([\w.]+)$
 export const parseSymbol = (token: string): ParsedSyncToken | null => {
-  // 정규식: #([\w.]+)$
+  // Regex: #([\w.]+)$
   const match = token.match(/#([\w.]+)$/);
   if (!match) {
     return null;
@@ -90,25 +80,22 @@ export const parseSymbol = (token: string): ParsedSyncToken | null => {
   };
 };
 
-/**
- * 토큰을 파싱하여 경로, 줄 범위, 심볼 정보를 추출합니다.
- * @param token - 원본 토큰
- * @returns 파싱된 토큰 정보
- */
+// @AI:CONTEXT Extracts path/line/symbol from token (parseLineRange → parseSymbol order)
+// @AI:CONSTRAINT Line numbers and symbols cannot be used together
 export const parseSyncToken = (token: string): ParsedSyncToken => {
-  // 줄 번호 우선 시도
+  // Try line number first
   const lineResult = parseLineRange(token);
   if (lineResult) {
     return lineResult;
   }
 
-  // 심볼 시도
+  // Try symbol
   const symbolResult = parseSymbol(token);
   if (symbolResult) {
     return symbolResult;
   }
 
-  // 둘 다 없으면 경로만 반환
+  // If neither, return path only
   return { filePath: token };
 };
 
@@ -204,7 +191,7 @@ export const resolveSyncTargets = async (
   const expandDirectories = options.expandDirectories === true;
 
   for (const token of targets) {
-    // 토큰에서 줄/심볼 정보 파싱
+    // @AI:CONTEXT Parse line/symbol info from token
     const parsed = parseSyncToken(token);
     const filePath = parsed.filePath;
 

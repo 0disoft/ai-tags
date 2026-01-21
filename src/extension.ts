@@ -1,14 +1,15 @@
 import * as vscode from 'vscode';
-import { getConfig } from './services/config';
-import { AiTagScanService } from './services/scanService';
-import { SyncHoverProvider } from './features/sync/syncHoverProvider';
-import { SyncInlayProvider } from './features/sync/syncInlayProvider';
-import { SyncIconDecorationManager } from './features/sync/syncIconDecorations';
-import { SyncCodeActionProvider, createSyncTarget } from './features/sync/syncCodeActions';
 import { TagHighlightManager } from './features/highlight/tagHighlight';
+import { SyncCodeActionProvider, createSyncTarget } from './features/sync/syncCodeActions';
+import { openSyncTarget } from './features/sync/syncCommands';
+import { SyncHoverProvider } from './features/sync/syncHoverProvider';
+import { SyncIconDecorationManager } from './features/sync/syncIconDecorations';
+import { SyncInlayProvider } from './features/sync/syncInlayProvider';
+import { openTagLocation } from './features/tagIndex/tagCommands';
 import { TagIndexService } from './features/tagIndex/tagIndexService';
 import { TagTreeDataProvider } from './features/tagIndex/tagTreeDataProvider';
-import { openTagLocation } from './features/tagIndex/tagCommands';
+import { getConfig } from './services/config';
+import { AiTagScanService } from './services/scanService';
 
 export const activate = (context: vscode.ExtensionContext): void => {
   const collection = vscode.languages.createDiagnosticCollection('ai-tags');
@@ -35,6 +36,9 @@ export const activate = (context: vscode.ExtensionContext): void => {
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('aiTags.createSyncTarget', createSyncTarget)
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand('aiTags.openSyncTarget', openSyncTarget)
   );
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider('aiTags.tagExplorer', tagTreeProvider)

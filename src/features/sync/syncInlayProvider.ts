@@ -1,35 +1,22 @@
+// @AI:CONTEXT Displays inlay hints (clickable links) at end of @AI:SYNC tag lines
+// @AI:SYNC ./syncResolver.ts, ./syncCommands.ts
 import * as vscode from 'vscode';
 import { parseAiTagFromLine } from '../../core/tagParser';
 import type { ExtensionConfig } from '../../services/config';
+import type { OpenSyncTargetArgs } from './syncCommands';
 import { resolveSyncTargets, type LineRange } from './syncResolver';
-import { findSymbolInFile } from './syncSymbolResolver';
 
-/**
- * 줄/심볼 정보를 기반으로 vscode.open 명령 인자 생성
- */
-const buildOpenArgs = async (
+// @AI:CONTEXT Builds aiTags.openSyncTarget command arguments
+const buildOpenArgs = (
   uri: vscode.Uri,
   lineRange?: LineRange,
   symbol?: string
-): Promise<unknown[]> => {
-  // 심볼이 있으면 심볼 위치 검색
-  if (symbol) {
-    const result = await findSymbolInFile(uri, symbol);
-    if (result.status === 'found') {
-      return [uri, { selection: new vscode.Range(result.line, result.character, result.line, result.character) }];
-    }
-  }
-
-  // 줄 번호가 있으면 해당 줄로 이동
-  if (lineRange) {
-    const startLine = lineRange.start - 1;
-    const endLine = lineRange.end ? lineRange.end - 1 : startLine;
-    return [uri, { selection: new vscode.Range(startLine, 0, endLine, 0) }];
-  }
-
-  // 기본: 파일만 열기
-  return [uri];
-};
+): OpenSyncTargetArgs => ({
+  uri: uri.toString(),
+  line: lineRange?.start,
+  endLine: lineRange?.end,
+  symbol
+});
 
 export class SyncInlayProvider implements vscode.InlayHintsProvider {
   constructor(private readonly readConfig: () => ExtensionConfig) {}
@@ -56,12 +43,23 @@ export class SyncInlayProvider implements vscode.InlayHintsProvider {
 
       const position = new vscode.Position(line, lineText.length);
       const label = new vscode.InlayHintLabelPart('🔗');
-      const args = await buildOpenArgs(target.uri, target.lineRange, target.symbol);
-      label.command = {
-        title: 'Open linked file',
-        command: 'vscode.open',
-        arguments: args
-      };
+      const args = buildOpenArgs(target.uri, target.lineRange, target.symbol);
+
+      // Use custom command if line/symbol info exists, otherwise vscode.open
+      if (target.lineRange || target.symbol) {
+        label.command = {
+          title: 'Open linked file',
+          command: 'aiTags.openSyncTarget',
+          arguments: [args]
+        };
+      } else {
+        label.command = {
+          title: 'Open linked file',
+          command: 'vscode.open',
+          arguments: [target.uri]
+        };
+      }
+
       label.tooltip = target.symbol
         ? `Open ${target.symbol}`
         : target.lineRange
@@ -76,4 +74,5 @@ export class SyncInlayProvider implements vscode.InlayHintsProvider {
     return hints;
   }
 }
+
 

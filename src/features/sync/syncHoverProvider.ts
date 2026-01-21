@@ -1,8 +1,10 @@
+// @AI:CONTEXT Displays hover links and navigation for @AI:SYNC tags
+// @AI:SYNC ./syncResolver.ts, ./syncCommands.ts
 import * as vscode from 'vscode';
 import { parseAiTagFromLine } from '../../core/tagParser';
 import type { ExtensionConfig } from '../../services/config';
+import type { OpenSyncTargetArgs } from './syncCommands';
 import { resolveSyncTargets, type LineRange, type SyncResolvedTarget } from './syncResolver';
-import { findSymbolInFile } from './syncSymbolResolver';
 
 const isOkTarget = (
   item: SyncResolvedTarget
@@ -13,45 +15,32 @@ const isMissingTarget = (
 ): item is Extract<SyncResolvedTarget, { status: 'missing' }> => item.status === 'missing';
 
 /**
- * 줄/심볼 정보를 기반으로 vscode.open 명령 URI 생성
+ * Generates command URI based on line/symbol info
  */
-const buildOpenCommand = async (
+const buildOpenCommand = (
   uri: vscode.Uri,
   lineRange?: LineRange,
   symbol?: string
-): Promise<string> => {
-  // 심볼이 있으면 심볼 위치 검색
-  if (symbol) {
-    const result = await findSymbolInFile(uri, symbol);
-    if (result.status === 'found') {
-      const options = {
-        selection: new vscode.Range(result.line, result.character, result.line, result.character)
-      };
-      const args = [uri, options];
-      const encoded = encodeURIComponent(JSON.stringify(args));
-      return `command:vscode.open?${encoded}`;
-    }
-  }
-
-  // 줄 번호가 있으면 해당 줄로 이동
-  if (lineRange) {
-    const startLine = lineRange.start - 1; // 0-indexed
-    const endLine = lineRange.end ? lineRange.end - 1 : startLine;
-    const options = {
-      selection: new vscode.Range(startLine, 0, endLine, 0)
+): string => {
+  // Use custom command if line/symbol info exists
+  if (lineRange || symbol) {
+    const args: OpenSyncTargetArgs = {
+      uri: uri.toString(),
+      line: lineRange?.start,
+      endLine: lineRange?.end,
+      symbol
     };
-    const args = [uri, options];
     const encoded = encodeURIComponent(JSON.stringify(args));
-    return `command:vscode.open?${encoded}`;
+    return `command:aiTags.openSyncTarget?${encoded}`;
   }
 
-  // 기본: 파일만 열기
+  // Default: open file only
   const encoded = encodeURIComponent(JSON.stringify(uri));
   return `command:vscode.open?${encoded}`;
 };
 
 /**
- * 라벨에 줄/심볼 정보 추가
+ * Appends line/symbol info to label
  */
 const buildLabel = (
   relativePath: string,
@@ -100,7 +89,7 @@ export class SyncHoverProvider implements vscode.HoverProvider {
       for (const item of okTargets) {
         const relativePath = vscode.workspace.asRelativePath(item.uri, false);
         const label = buildLabel(relativePath, item.lineRange, item.symbol);
-        const commandUri = await buildOpenCommand(item.uri, item.lineRange, item.symbol);
+        const commandUri = buildOpenCommand(item.uri, item.lineRange, item.symbol);
         markdown.appendMarkdown(`- [${label}](${commandUri})\n`);
       }
     }
@@ -125,7 +114,7 @@ export class SyncHoverProvider implements vscode.HoverProvider {
       }
     }
 
-    markdown.isTrusted = { enabledCommands: ['vscode.open', 'aiTags.createSyncTarget'] };
+    markdown.isTrusted = { enabledCommands: ['vscode.open', 'aiTags.createSyncTarget', 'aiTags.openSyncTarget'] };
     return new vscode.Hover(markdown, range);
   }
 }

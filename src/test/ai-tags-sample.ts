@@ -23,6 +23,9 @@ export const applyDiscount = (subtotal: number, discount: number): number => {
 };
 
 // @AI:SYNC src/core/tagParser.ts
+// @AI:SYNC src/core/tagParser.ts:L10
+// @AI:SYNC src/core/tagParser.ts:L10-L20
+// @AI:SYNC src/core/tagParser.ts#parseAiTagFromLine
 // @AI:UNCERTAIN Needs performance review under large inputs.
 export const normalizeNotes = (notes: string[]): string[] => {
   return notes.map((note) => note.trim()).filter((note) => note.length > 0);

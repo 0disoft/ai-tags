@@ -1,18 +1,14 @@
-/**
- * 심볼 검색 유틸리티
- * 파일 내 함수, 클래스, 메서드 등의 심볼 위치를 검색합니다.
- */
+// @AI:CONTEXT Searches for symbol locations (functions, classes, methods) in a file
+// @AI:SYNC ./syncCommands.ts#openSyncTarget
 import * as vscode from 'vscode';
 
-/**
- * 심볼 검색 결과
- */
+// @AI:CONTEXT Symbol lookup result type (found/not_found discriminated union)
 export type SymbolLookupResult =
   | {
       status: 'found';
-      /** 심볼이 있는 줄 번호 (0-indexed) */
+      /** Line number where symbol is located (0-indexed) */
       line: number;
-      /** 심볼이 있는 컬럼 (0-indexed) */
+      /** Column where symbol is located (0-indexed) */
       character: number;
     }
   | {
@@ -20,12 +16,8 @@ export type SymbolLookupResult =
       reason: string;
     };
 
-/**
- * 중첩 심볼을 검색합니다 (예: Class.method).
- * @param symbols - 문서 심볼 배열
- * @param path - 심볼 경로 (예: ["Foo", "bar"])
- * @returns 찾은 심볼 또는 undefined
- */
+// @AI:CONTEXT Traverses nested symbols (e.g., Class.method -> ["Class", "method"])
+// @AI:ASSUMPTION symbols array is vscode.DocumentSymbol[] type
 export const findNestedSymbol = (
   symbols: vscode.DocumentSymbol[],
   path: string[]
@@ -45,21 +37,16 @@ export const findNestedSymbol = (
     return found;
   }
 
-  // 중첩 심볼 탐색
   return findNestedSymbol(found.children, rest);
 };
 
-/**
- * 파일 내에서 심볼(함수, 클래스 등)의 위치를 검색합니다.
- * @param uri - 검색할 파일 URI
- * @param symbolName - 심볼명 (예: "hello", "Foo.bar")
- * @returns 심볼 위치 또는 not_found
- */
+// @AI:CONTEXT Searches symbols using vscode.executeDocumentSymbolProvider
+// @AI:CONSTRAINT Requires active Language Server for the target file
 export const findSymbolInFile = async (
   uri: vscode.Uri,
   symbolName: string
 ): Promise<SymbolLookupResult> => {
-  // 심볼 경로를 분리 (예: "Foo.bar" -> ["Foo", "bar"])
+  // Split symbol path (e.g., "Foo.bar" -> ["Foo", "bar"])
   const symbolPath = symbolName.split('.');
 
   try {
@@ -87,3 +74,4 @@ export const findSymbolInFile = async (
     return { status: 'not_found', reason: 'failed to execute symbol provider' };
   }
 };
+
