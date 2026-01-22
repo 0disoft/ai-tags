@@ -211,7 +211,7 @@ export const resolveSyncTargets = async (
       const entries = await vscode.workspace.fs.readDirectory(resolved.uri);
       let added = 0;
       for (const [name, type] of entries) {
-        if ((type & vscode.FileType.File) !== vscode.FileType.File) continue;
+        if ((type & vscode.FileType.File) !== vscode.FileType.File) {continue;}
         const childUri = vscode.Uri.joinPath(resolved.uri, name);
         results.push({
           status: 'ok',

@@ -5,8 +5,8 @@ const tagPattern = /@AI:([A-Z_]+)\b(.*)$/;
 
 const resolveKind = (name: string): AiTagKind | null => {
   const upper = name.toUpperCase();
-  if (upper === 'EXPIRY') return 'expiry';
-  if (upper === 'SYNC') return 'sync';
+  if (upper === 'EXPIRY') {return 'expiry';}
+  if (upper === 'SYNC') {return 'sync';}
   return null;
 };
 
@@ -38,16 +38,16 @@ export const parseAiTagKeyFromLine = (
   line: number
 ): { tagKey: string; line: number; startChar: number; endChar: number } | null => {
   const tagIndex = lineText.indexOf('@AI:');
-  if (tagIndex === -1) return null;
+  if (tagIndex === -1) {return null;}
 
   const commentIndex = findCommentStart(lineText, tagIndex);
-  if (commentIndex === -1) return null;
+  if (commentIndex === -1) {return null;}
 
   const match = tagPattern.exec(lineText.slice(tagIndex));
-  if (!match) return null;
+  if (!match) {return null;}
 
   const tagKey = `@AI:${match[1] ?? ''}`;
-  if (tagKey.length <= 4) return null;
+  if (tagKey.length <= 4) {return null;}
 
   const startChar = tagIndex + match.index;
   const endChar = startChar + tagKey.length;
@@ -57,13 +57,13 @@ export const parseAiTagKeyFromLine = (
 
 export const parseAiTagFromLine = (lineText: string, line: number): AiTagEntry | null => {
   const keyMatch = parseAiTagKeyFromLine(lineText, line);
-  if (!keyMatch) return null;
+  if (!keyMatch) {return null;}
 
   const match = tagPattern.exec(lineText.slice(keyMatch.startChar));
-  if (!match) return null;
+  if (!match) {return null;}
 
   const kind = resolveKind(match[1] ?? '');
-  if (!kind) return null;
+  if (!kind) {return null;}
 
   const payload = (match[2] ?? '').trim();
   const startChar = keyMatch.startChar;
@@ -84,7 +84,7 @@ export const parseAiTagsFromDocument = (document: vscode.TextDocument): AiTagEnt
   for (let line = 0; line < document.lineCount; line += 1) {
     const lineText = document.lineAt(line).text;
     const tag = parseAiTagFromLine(lineText, line);
-    if (tag) tags.push(tag);
+    if (tag) {tags.push(tag);}
   }
   return tags;
 };

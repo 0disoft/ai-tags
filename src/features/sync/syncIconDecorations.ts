@@ -7,8 +7,8 @@ const isInlayHintsEnabled = (document: vscode.TextDocument): boolean => {
   const config = vscode.workspace.getConfiguration('editor', document.uri);
   const setting = config.get<string | boolean>('inlayHints.enabled');
 
-  if (typeof setting === 'boolean') return setting;
-  if (typeof setting !== 'string') return true;
+  if (typeof setting === 'boolean') {return setting;}
+  if (typeof setting !== 'string') {return true;}
 
   return setting === 'on' || setting === 'onUnlessPressed';
 };
@@ -29,7 +29,7 @@ export class SyncIconDecorationManager {
   }
 
   async update(editor?: vscode.TextEditor): Promise<void> {
-    if (!editor) return;
+    if (!editor) {return;}
 
     const config = this.readConfig();
     if (!config.sync.enabled) {
@@ -46,11 +46,11 @@ export class SyncIconDecorationManager {
     for (let line = 0; line < editor.document.lineCount; line += 1) {
       const lineText = editor.document.lineAt(line).text;
       const tag = parseAiTagFromLine(lineText, line);
-      if (!tag || tag.kind !== 'sync') continue;
+      if (!tag || tag.kind !== 'sync') {continue;}
 
       const results = await resolveSyncTargets(editor.document, tag.payload, { expandDirectories: false });
       const hasTarget = results.some((item) => item.status === 'ok');
-      if (!hasTarget) continue;
+      if (!hasTarget) {continue;}
 
       const range = new vscode.Range(
         new vscode.Position(line, lineText.length),
@@ -63,7 +63,7 @@ export class SyncIconDecorationManager {
   }
 
   clear(editor?: vscode.TextEditor): void {
-    if (!editor) return;
+    if (!editor) {return;}
     editor.setDecorations(this.decorationType, []);
   }
 

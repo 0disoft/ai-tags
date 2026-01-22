@@ -5,9 +5,6 @@ import { openSyncTarget } from './features/sync/syncCommands';
 import { SyncHoverProvider } from './features/sync/syncHoverProvider';
 import { SyncIconDecorationManager } from './features/sync/syncIconDecorations';
 import { SyncInlayProvider } from './features/sync/syncInlayProvider';
-import { openTagLocation } from './features/tagIndex/tagCommands';
-import { TagIndexService } from './features/tagIndex/tagIndexService';
-import { TagTreeDataProvider } from './features/tagIndex/tagTreeDataProvider';
 import { getConfig } from './services/config';
 import { AiTagScanService } from './services/scanService';
 
@@ -19,8 +16,6 @@ export const activate = (context: vscode.ExtensionContext): void => {
   const syncIconManager = new SyncIconDecorationManager(getConfig);
   const syncCodeActions = new SyncCodeActionProvider(getConfig);
   const highlightManager = new TagHighlightManager(getConfig);
-  const tagIndexService = new TagIndexService();
-  const tagTreeProvider = new TagTreeDataProvider(tagIndexService);
 
   const rescanAll = async () => {
     scanService.clearAll();
@@ -32,16 +27,10 @@ export const activate = (context: vscode.ExtensionContext): void => {
 
   context.subscriptions.push(collection);
   context.subscriptions.push(
-    vscode.commands.registerCommand('aiTags.openTagLocation', openTagLocation)
-  );
-  context.subscriptions.push(
     vscode.commands.registerCommand('aiTags.createSyncTarget', createSyncTarget)
   );
   context.subscriptions.push(
     vscode.commands.registerCommand('aiTags.openSyncTarget', openSyncTarget)
-  );
-  context.subscriptions.push(
-    vscode.window.registerTreeDataProvider('aiTags.tagExplorer', tagTreeProvider)
   );
   context.subscriptions.push(
     vscode.languages.registerHoverProvider({ scheme: 'file' }, hoverProvider)
@@ -58,13 +47,10 @@ export const activate = (context: vscode.ExtensionContext): void => {
   );
 
   void rescanAll();
-  void tagIndexService.scanWorkspace();
 
   context.subscriptions.push(
     vscode.workspace.onDidOpenTextDocument((document) => {
       void scanService.scanDocument(document);
-      tagIndexService.upsertDocument(document);
-      tagIndexService.fireDidChange();
     })
   );
 
@@ -78,8 +64,6 @@ export const activate = (context: vscode.ExtensionContext): void => {
   context.subscriptions.push(
     vscode.workspace.onDidChangeTextDocument((event) => {
       scanService.scheduleDocument(event.document);
-      tagIndexService.upsertDocument(event.document);
-      tagIndexService.fireDidChange();
       const active = vscode.window.activeTextEditor;
       if (active && active.document.uri.toString() === event.document.uri.toString()) {
         highlightManager.update(active);
@@ -91,8 +75,6 @@ export const activate = (context: vscode.ExtensionContext): void => {
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument((document) => {
       scanService.scheduleDocument(document);
-      tagIndexService.upsertDocument(document);
-      tagIndexService.fireDidChange();
       const active = vscode.window.activeTextEditor;
       if (active && active.document.uri.toString() === document.uri.toString()) {
         highlightManager.update(active);
@@ -104,8 +86,6 @@ export const activate = (context: vscode.ExtensionContext): void => {
   context.subscriptions.push(
     vscode.workspace.onDidCloseTextDocument((document) => {
       scanService.clearDocument(document);
-      tagIndexService.removeDocument(document);
-      tagIndexService.fireDidChange();
     })
   );
 
@@ -115,7 +95,6 @@ export const activate = (context: vscode.ExtensionContext): void => {
         void rescanAll();
         highlightManager.update(vscode.window.activeTextEditor);
         void syncIconManager.update(vscode.window.activeTextEditor);
-        tagIndexService.fireDidChange();
       }
     })
   );
@@ -124,7 +103,6 @@ export const activate = (context: vscode.ExtensionContext): void => {
     dispose: () => {
       highlightManager.dispose();
       syncIconManager.dispose();
-      tagTreeProvider.dispose();
     }
   });
 };

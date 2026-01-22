@@ -18,7 +18,7 @@ export const calculatePrice = (input: PriceInput): number => {
 // @AI:CONSTRAINT Do not call external payment SDKs here.
 // @AI:INVARIANT Discount must not exceed subtotal.
 export const applyDiscount = (subtotal: number, discount: number): number => {
-  if (discount > subtotal) return subtotal;
+  if (discount > subtotal) {return subtotal;}
   return subtotal - discount;
 };
 
@@ -27,6 +27,11 @@ export const applyDiscount = (subtotal: number, discount: number): number => {
 // @AI:SYNC src/core/tagParser.ts:L10-L20
 // @AI:SYNC src/core/tagParser.ts#parseAiTagFromLine
 // @AI:UNCERTAIN Needs performance review under large inputs.
+// @AI:RATIONALE Chose simple normalization to keep output deterministic.
+// @AI:ALTERNATIVE Regex-based cleanup rejected due to readability concerns.
+// @AI:RISK Large note arrays may increase latency; mitigate with batching.
+// @AI:LIMITATION Does not preserve original spacing or punctuation.
+// @AI:RUNBOOK Check Output > AI Tags if sync links fail; re-open workspace.
 export const normalizeNotes = (notes: string[]): string[] => {
   return notes.map((note) => note.trim()).filter((note) => note.length > 0);
 };
@@ -40,7 +45,7 @@ export const formatCurrency = (value: number, currency: string): string => {
 // @AI:CRITICAL Sensitive metadata handling.
 // @AI:CONSTRAINT Do not log raw values.
 export const redactToken = (token: string): string => {
-  if (token.length <= 8) return '***';
+  if (token.length <= 8) {return '***';}
   return `${token.slice(0, 4)}...${token.slice(-4)}`;
 };
 

@@ -75,6 +75,21 @@ and explicitly describe what each tag means in your codebase.
 - @AI:DEPRECATED
   - Meaning: Code scheduled for removal with migration path.
   - Payload: Alternative to use, e.g. `Use newMethod() instead`.
+- @AI:RATIONALE
+  - Meaning: Why the choice was made and the trade-offs.
+  - Payload: Short sentence.
+- @AI:ALTERNATIVE
+  - Meaning: Considered but rejected options and why.
+  - Payload: Option name plus rejection reason in one line.
+- @AI:RISK
+  - Meaning: Known risks and mitigations (tests/monitoring/rollback points).
+  - Payload: Risk and mitigation summary in one line.
+- @AI:LIMITATION
+  - Meaning: Intentional limitation or unsupported cases.
+  - Payload: One-line scope boundary.
+- @AI:RUNBOOK
+  - Meaning: Minimal operational steps (logs, retries, recovery).
+  - Payload: One-line operational summary.
 
 ## Examples
 
@@ -86,6 +101,11 @@ and explicitly describe what each tag means in your codebase.
 // @AI:SYNC src/billing/pricing.ts
 // @AI:SYNC src/utils/calc.ts:L50
 // @AI:SYNC src/models/order.ts#OrderItem
+// @AI:RATIONALE Chose synchronous parsing to keep ordering deterministic.
+// @AI:ALTERNATIVE Async batch scan rejected due to stale diagnostics risk.
+// @AI:RISK Large files may delay scan; mitigate with size cap and debounce.
+// @AI:LIMITATION No diagnostics for tags inside Markdown fenced blocks.
+// @AI:RUNBOOK Check Output > AI Tags for scan errors; rescan workspace.
 function calcPrice(input: PriceInput) {}
 ```
 
@@ -96,8 +116,7 @@ function calcPrice(input: PriceInput) {}
 - @AI:SYNC supports multiple paths and folder targets, with quick fixes to create missing files.
 - Hover for missing @AI:SYNC targets shows a create link.
 - @AI:TAG keywords are highlighted with theme-aware colors.
-- AI Tags view in Explorer lists tags across the workspace and lets you jump to locations.
-- Diagnostics and the AI Tags view ignore tags inside Markdown fenced code blocks.
+- Diagnostics ignore tags inside Markdown fenced code blocks.
 
 ## Preview
 

@@ -13,6 +13,15 @@ const timezoneOffsets: Record<string, number> = {
   KST: 9
 };
 
+const isValidDayInMonth = (year: number, month: number, day: number): boolean => {
+  const utcDate = new Date(Date.UTC(year, month - 1, day));
+  return (
+    utcDate.getUTCFullYear() === year &&
+    utcDate.getUTCMonth() === month - 1 &&
+    utcDate.getUTCDate() === day
+  );
+};
+
 const toExpiryDate = (dateText: string, timezone: string): Date | null => {
   const match = datePattern.exec(dateText);
   if (!match) {return null;}
@@ -21,6 +30,7 @@ const toExpiryDate = (dateText: string, timezone: string): Date | null => {
   const month = Number(match[2]);
   const day = Number(match[3]);
   if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {return null;}
+  if (!isValidDayInMonth(year, month, day)) {return null;}
 
   const offset = timezoneOffsets[timezone];
   if (offset === undefined) {return null;}

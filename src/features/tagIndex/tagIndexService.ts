@@ -8,6 +8,8 @@ type LineInfo = {
   text: string;
 };
 
+const tagIndexAllowlist = new Set(['@AI:EXPIRY']);
+
 const getLineInfo = (document: vscode.TextDocument, line: number): LineInfo => ({
   line,
   text: document.lineAt(line).text
@@ -46,7 +48,8 @@ export class TagIndexService {
     for (const info of readDocumentLines(document)) {
       if (fenceMask && fenceMask[info.line]) {continue;}
       const match = parseAiTagKeyFromLine(info.text, info.line);
-      if (!match) continue;
+      if (!match) {continue;}
+      if (!tagIndexAllowlist.has(match.tagKey)) {continue;}
       const payload = info.text.slice(match.endChar).trim();
       const range = new vscode.Range(
         new vscode.Position(info.line, match.startChar),

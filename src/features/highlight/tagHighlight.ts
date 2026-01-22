@@ -17,7 +17,12 @@ const tagStyles: Record<string, TagStyle> = {
   '@AI:ASSUMPTION': { color: new vscode.ThemeColor('charts.purple') },
   '@AI:SYNC': { color: new vscode.ThemeColor('charts.blue') },
   '@AI:PROMPT': { color: new vscode.ThemeColor('charts.green') },
-  '@AI:FROZEN': { color: new vscode.ThemeColor('charts.gray') }
+  '@AI:FROZEN': { color: new vscode.ThemeColor('charts.yellow') },
+  '@AI:RATIONALE': { color: new vscode.ThemeColor('charts.blue') },
+  '@AI:ALTERNATIVE': { color: new vscode.ThemeColor('charts.orange') },
+  '@AI:RISK': { color: new vscode.ThemeColor('charts.red') },
+  '@AI:LIMITATION': { color: new vscode.ThemeColor('charts.gray') },
+  '@AI:RUNBOOK': { color: new vscode.ThemeColor('charts.green') }
 };
 
 export class TagHighlightManager {
@@ -29,7 +34,7 @@ export class TagHighlightManager {
   }
 
   update(editor?: vscode.TextEditor): void {
-    if (!editor) return;
+    if (!editor) {return;}
     const config = this.readConfig();
     if (!config.highlight.enabled) {
       this.clear(editor);
@@ -41,10 +46,10 @@ export class TagHighlightManager {
     for (let line = 0; line < editor.document.lineCount; line += 1) {
       const lineText = editor.document.lineAt(line).text;
       const keyMatch = parseAiTagKeyFromLine(lineText, line);
-      if (!keyMatch) continue;
+      if (!keyMatch) {continue;}
 
       const style = tagStyles[keyMatch.tagKey];
-      if (!style) continue;
+      if (!style) {continue;}
 
       const range = new vscode.Range(
         new vscode.Position(line, keyMatch.startChar),
@@ -62,7 +67,7 @@ export class TagHighlightManager {
   }
 
   clear(editor?: vscode.TextEditor): void {
-    if (!editor) return;
+    if (!editor) {return;}
     for (const decorationType of this.decorationTypes.values()) {
       editor.setDecorations(decorationType, []);
     }
@@ -77,7 +82,7 @@ export class TagHighlightManager {
 
   private getDecorationType(tagKey: string): vscode.TextEditorDecorationType {
     const existing = this.decorationTypes.get(tagKey);
-    if (existing) return existing;
+    if (existing) {return existing;}
 
     const style = tagStyles[tagKey] ?? tagStyles['@AI:EXPIRY'];
     const decorationType = vscode.window.createTextEditorDecorationType({

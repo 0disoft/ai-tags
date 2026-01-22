@@ -26,7 +26,7 @@ export class SyncInlayProvider implements vscode.InlayHintsProvider {
     range: vscode.Range
   ): Promise<vscode.InlayHint[]> {
     const config = this.readConfig();
-    if (!config.sync.enabled) return [];
+    if (!config.sync.enabled) {return [];}
 
     const hints: vscode.InlayHint[] = [];
     const startLine = range.start.line;
@@ -35,11 +35,11 @@ export class SyncInlayProvider implements vscode.InlayHintsProvider {
     for (let line = startLine; line <= endLine; line += 1) {
       const lineText = document.lineAt(line).text;
       const tag = parseAiTagFromLine(lineText, line);
-      if (!tag || tag.kind !== 'sync') continue;
+      if (!tag || tag.kind !== 'sync') {continue;}
 
       const results = await resolveSyncTargets(document, tag.payload, { expandDirectories: false });
       const target = results.find((item) => item.status === 'ok');
-      if (!target || target.status !== 'ok') continue;
+      if (!target || target.status !== 'ok') {continue;}
 
       const position = new vscode.Position(line, lineText.length);
       const label = new vscode.InlayHintLabelPart('🔗');
